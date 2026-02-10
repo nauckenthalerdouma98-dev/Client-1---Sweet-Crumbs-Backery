@@ -561,7 +561,7 @@ if (reservationForm) {
         });
         
         // Client's WhatsApp number
-        const clientWhatsAppNumber = "237653120249";
+        const clientWhatsAppNumber = "2376[...]";
         
         // Create WhatsApp message WITH PROPER ENCODING
         const message = `NEW BAKERY RESERVATION\n\n` +
