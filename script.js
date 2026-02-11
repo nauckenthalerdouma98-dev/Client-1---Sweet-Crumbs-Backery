@@ -260,87 +260,79 @@ document.addEventListener("DOMContentLoaded", function () {
 
 document.addEventListener("DOMContentLoaded", function () {
   const searchInput = document.querySelector(".Search");
+  if (!searchInput) {
+    console.error("Search input not found");
+    return;
+  }
+
   const allMenuItems = document.querySelectorAll(".menu-item");
   const allCategories = document.querySelectorAll(
-    "ul.Breads, ul.Pastries, ul.Cookies, ul.Drinks",
+    "ul.Breads, ul.Pastries, ul.Cookies, ul.Drinks"
   );
   const allCategoryHeaders = document.querySelectorAll("ul h4");
 
-  // Fuzzy match function for close matches
+  // Fuzzy match: keeps spaces for word‑by‑word search
   function fuzzyMatch(text, searchTerm) {
     if (!searchTerm) return false;
 
-    const cleanText = text.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const cleanSearch = searchTerm.toLowerCase().replace(/[^a-z0-9]/g, "");
+    // Keep alphanumeric and spaces, remove punctuation
+    const cleanText = text.toLowerCase().replace(/[^a-z0-9\s]/g, "");
+    const cleanSearch = searchTerm.toLowerCase().replace(/[^a-z0-9\s]/g, "");
 
-    // Exact match
+    if (!cleanSearch) return false;
+
+    // Exact match (after cleaning)
     if (cleanText.includes(cleanSearch)) return true;
 
-    // Partial match (at least 3 characters match in sequence)
-    if (cleanSearch.length >= 3) {
+    // Partial contiguous match (≥70% of characters in same order)
+    if (cleanSearch.length >= 3 && cleanSearch.length <= cleanText.length) {
       for (let i = 0; i <= cleanText.length - cleanSearch.length; i++) {
         let matchCount = 0;
         for (let j = 0; j < cleanSearch.length; j++) {
-          if (cleanText[i + j] === cleanSearch[j]) {
-            matchCount++;
-          }
+          if (cleanText[i + j] === cleanSearch[j]) matchCount++;
         }
-        // If 70% of characters match, consider it a match
         if (matchCount >= cleanSearch.length * 0.7) return true;
       }
     }
 
-    // Word-by-word match
-    const searchWords = cleanSearch.split(" ");
-    const textWords = cleanText.split(" ");
+    // Word‑by‑word match (each word length ≥3)
+    const searchWords = cleanSearch.split(/\s+/).filter(w => w.length >= 3);
+    const textWords = cleanText.split(/\s+/);
     let matchedWords = 0;
 
     for (const searchWord of searchWords) {
       for (const textWord of textWords) {
-        if (textWord.includes(searchWord) && searchWord.length >= 3) {
+        if (textWord.includes(searchWord)) {
           matchedWords++;
           break;
         }
       }
     }
 
-    // If at least half the search words match
     return matchedWords >= Math.ceil(searchWords.length / 2);
   }
 
-  // Search function
   function performSearch() {
     const searchTerm = searchInput.value.trim();
-    let hasResults = false;
 
-    // Reset all items and categories first
-    allMenuItems.forEach((item) => {
-      item.style.display = "flex";
-    });
+    // Reset all items and categories to visible (using assumed original display)
+    allMenuItems.forEach(item => item.style.display = "flex");
+    allCategories.forEach(cat => cat.style.display = "block");
+    allCategoryHeaders.forEach(header => header.style.display = "block");
 
-    allCategories.forEach((category) => {
-      category.style.display = "block";
-    });
-
-    allCategoryHeaders.forEach((header) => {
-      header.style.display = "block";
-    });
-
-    // If search is empty, show everything
     if (!searchTerm) {
-      // Update result counter if exists
       const counter = document.querySelector(".search-counter");
       if (counter) counter.remove();
       return;
     }
 
-    // Search through all items
-    allMenuItems.forEach((item) => {
-      const itemName = item.querySelector(".item-name").textContent;
-      const itemDescription =
-        item.querySelector(".item-description").textContent;
+    let hasResults = false;
 
-      // Check for matches in name or description
+    // Filter items
+    allMenuItems.forEach(item => {
+      const itemName = item.querySelector(".item-name")?.textContent || "";
+      const itemDescription = item.querySelector(".item-description")?.textContent || "";
+
       const nameMatch = fuzzyMatch(itemName, searchTerm);
       const descMatch = fuzzyMatch(itemDescription, searchTerm);
 
@@ -353,10 +345,8 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Hide empty categories and their headers
-    allCategories.forEach((category) => {
-      const visibleItems = category.querySelectorAll(
-        '.menu-item[style*="display: flex"]',
-      );
+    allCategories.forEach(category => {
+      const visibleItems = category.querySelectorAll('.menu-item[style*="display: flex"]');
       const categoryHeader = category.querySelector("h4");
 
       if (visibleItems.length === 0) {
@@ -368,40 +358,32 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 
-    // Show result counter
     showResultCounter(hasResults, searchTerm);
   }
 
-  // Show result counter
   function showResultCounter(hasResults, searchTerm) {
-    // Remove existing counter
     const existingCounter = document.querySelector(".search-counter");
     if (existingCounter) existingCounter.remove();
 
     if (!searchTerm) return;
 
-    // Count visible items
-    const visibleItems = document.querySelectorAll(
-      '.menu-item[style*="display: flex"]',
-    );
-
-    // Create counter element
+    const visibleItems = document.querySelectorAll('.menu-item[style*="display: flex"]');
     const counter = document.createElement("div");
     counter.className = "search-counter";
     counter.style.cssText = `
-            position: sticky;
-            top: 130px;
-            float: right;
-            z-index: 100;
-            background-color: var(--Secondary-Color);
-            color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-            margin-bottom: 15px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-            animation: fadeIn 0.3s ease;
-        `;
+      position: sticky;
+      top: 130px;
+      float: right;
+      z-index: 100;
+      background-color: var(--Secondary-Color);
+      color: white;
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      margin-bottom: 15px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+      animation: fadeIn 0.3s ease;
+    `;
 
     if (visibleItems.length > 0) {
       counter.textContent = `Found ${visibleItems.length} item${visibleItems.length !== 1 ? "s" : ""} for "${searchTerm}"`;
@@ -411,70 +393,62 @@ document.addEventListener("DOMContentLoaded", function () {
       counter.style.backgroundColor = "#ff6b6b";
     }
 
-    // Insert after search input
     searchInput.insertAdjacentElement("afterend", counter);
 
-    // Auto-hide after 3 seconds if no results
     if (visibleItems.length === 0) {
       setTimeout(() => {
         if (counter && document.body.contains(counter)) {
           counter.style.opacity = "0";
           counter.style.transition = "opacity 0.5s ease";
-          setTimeout(() => {
-            if (counter && document.body.contains(counter)) {
-              counter.remove();
-            }
-          }, 500);
+          setTimeout(() => counter.remove(), 500);
         }
       }, 3000);
     }
   }
 
-  // Clear search function
   function clearSearch() {
     searchInput.value = "";
     performSearch();
   }
 
+  // ---- Safe clear button handling ----
   const clearButton = document.querySelector(".clear-search");
-  clearButton.addEventListener("click", clearSearch);
+  if (clearButton) {
+    clearButton.addEventListener("click", clearSearch);
+  }
 
   // Event listeners
   searchInput.addEventListener("input", function () {
-    clearButton.style.opacity = this.value ? "1" : "0.3";
+    if (clearButton) {
+      clearButton.style.opacity = this.value ? "1" : "0.3";
+    }
     performSearch();
   });
 
   searchInput.addEventListener("keypress", function (e) {
-    if (e.key === "Enter") {
-      performSearch();
-    }
+    if (e.key === "Enter") performSearch();
   });
 
-  // Add CSS for animations
+  // Animation styles
   const style = document.createElement("style");
   style.textContent = `
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .menu-item {
-            transition: opacity 0.3s ease, transform 0.3s ease;
-        }
-        
-        .menu-item[style*="display: flex"] {
-            animation: fadeIn 0.4s ease;
-        }
-        
-        .clear-search:hover {
-            opacity: 1 !important;
-            transform: scale(1.1);
-        }
-    `;
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .menu-item {
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .menu-item[style*="display: flex"] {
+      animation: fadeIn 0.4s ease;
+    }
+    .clear-search:hover {
+      opacity: 1 !important;
+      transform: scale(1.1);
+    }
+  `;
   document.head.appendChild(style);
 });
-
 
 
 // RESERVATION FORM FUNCTIONALITY
@@ -586,4 +560,5 @@ if (reservationForm) {
         }
     });
 }
+
 });
